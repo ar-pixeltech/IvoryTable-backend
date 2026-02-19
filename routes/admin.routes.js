@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
 
 // Login
 router.post("/login",
-    // rateLimiter, 
+    rateLimiter,
     async (req, res) => {
         console.log("Admin login attempt:", req.body);
         try {
@@ -40,7 +40,6 @@ router.post("/login",
 
             const token = jwt.sign({ id: admin.id }, "SECRET", { expiresIn: "1d" });
 
-            // res.json({ token });
             res.success({ token }, "Login successful");
         } catch (error) {
             next(error);

@@ -21,11 +21,17 @@ model Vendor {
   email          String?  @unique
   password       String
   isActive       Boolean  @default(true)
+  
   subscriptionId String?
-  trialEndsAt    DateTime?
-  createdAt      DateTime @default(now())
-
   subscription   SubscriptionPlan? @relation(fields: [subscriptionId], references: [id])
+
+  subscriptionEndsAt DateTime?
+  trialEndsAt    DateTime?
+
+  categories MenuCategory[]
+  items      MenuItem[]
+
+  createdAt      DateTime @default(now())
 }
 
 model SubscriptionPlan {
@@ -37,4 +43,33 @@ model SubscriptionPlan {
   createdAt   DateTime @default(now())
 
   vendors     Vendor[]
+}
+
+model MenuCategory {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+
+  items     MenuItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  name        String
+  price       Float
+  description String?
+  isAvailable Boolean  @default(true)
+
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+
+  categoryId  String
+  category    MenuCategory @relation(fields: [categoryId], references: [id])
+
+  createdAt   DateTime @default(now())
 }

@@ -25,8 +25,11 @@ touch .env
 ```
 Add the following variables:
 ```env
-PORT=5000
 DATABASE_URL="postgresql://username:password@localhost:5432/posdb"
+JWT_SECRET="your_jwt_secret_key"
+PORT=3000
+RATE_LIMIT_WINDOW=15 * 60 * 1000 # 15 minutes
+RATE_LIMIT_MAX=100 # Max 100 requests per window per IP
 ```
 
 Make sure PostgreSQL is running before proceeding.

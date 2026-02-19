@@ -2,37 +2,91 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
 const checkVendorAccess = require("../middleware/checkVendorAccess");
+const checkAdmin = require("../middleware/checkAdmin");
+const jwt = require("jsonwebtoken");
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Create Vendor
-router.post("/create", async (req, res) => {
-    const { name, phone, email, password, subscriptionId } = req.body;
+router.post("/create", checkAdmin, async (req, res, next) => {
+    try {
+        const { name, phone, email, password, subscriptionId } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+        const plan = await prisma.subscriptionPlan.findUnique({
+            where: { id: subscriptionId }
+        });
 
-    const trialPlan = await prisma.subscriptionPlan.findFirst({
-        where: { isTrial: true }
-    });
+        if (!plan) return res.error("Invalid plan", 400);
 
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + trialPlan.durationDays);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    const vendor = await prisma.vendor.create({
-        data: {
-            name,
-            phone,
-            email,
-            password: hashedPassword,
-            subscriptionId,
-            trialEndsAt
+        let subscriptionEndsAt = null;
+        let trialEndsAt = null;
+
+        if (plan.isTrial) {
+            trialEndsAt = new Date();
+            trialEndsAt.setDate(trialEndsAt.getDate() + plan.durationDays);
+        } else {
+            subscriptionEndsAt = new Date();
+            subscriptionEndsAt.setDate(subscriptionEndsAt.getDate() + plan.durationDays);
         }
-    });
 
-    res.json(vendor);
+        const vendor = await prisma.vendor.create({
+            data: {
+                name,
+                phone,
+                email,
+                password: hashedPassword,
+                subscriptionId,
+                subscriptionEndsAt,
+                trialEndsAt
+            }
+        });
+
+        res.success(vendor, "Vendor created");
+
+    } catch (err) {
+        next(err);
+    }
 });
 
+
+// vendor login API
+router.post("/login", async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+
+        const vendor = await prisma.vendor.findUnique({
+            where: { email }
+        });
+
+        if (!vendor) return res.error("Vendor not found", 404);
+
+        if (!vendor.isActive) return res.error("Account disabled", 403);
+
+        const valid = await bcrypt.compare(password, vendor.password);
+        if (!valid) return res.error("Invalid password", 401);
+
+        // Check expiry
+        if (vendor.trialEndsAt && new Date() > vendor.trialEndsAt)
+            return res.error("Trial expired", 403);
+
+        if (vendor.subscriptionEndsAt && new Date() > vendor.subscriptionEndsAt)
+            return res.error("Subscription expired", 403);
+
+        const token = jwt.sign(
+            { id: vendor.id },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        res.success({ token }, "Login successful");
+
+    } catch (err) {
+        next(err);
+    }
+});
 
 
 router.get("/dashboard",

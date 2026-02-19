@@ -1,7 +1,6 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const checkAdmin = require("../middleware/checkAdmin");
-const ApiError = require("../utlis/ApiError");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -10,6 +9,13 @@ const router = express.Router();
 router.post("/create", checkAdmin, async (req, res) => {
     try {
         const { name, price, durationDays, isTrial } = req.body;
+
+        if (isTrial) {
+            await prisma.subscriptionPlan.updateMany({
+                where: { isTrial: true },
+                data: { isTrial: false }
+            });
+        }
 
         const plan = await prisma.subscriptionPlan.create({
             data: {
@@ -20,59 +26,55 @@ router.post("/create", checkAdmin, async (req, res) => {
             }
         });
 
-        res.json(plan);
-    } catch (error) {
-        next(new ApiError("Failed to create plan", 500));
+        res.success(plan, "Plan created successfully");
+
+    } catch (err) {
+        next(err);
     }
 });
 
-
-router.get("/all", checkAdmin, async (req, res) => {
-
-
+router.get("/all", checkAdmin, async (req, res, next) => {
     try {
         const plans = await prisma.subscriptionPlan.findMany({
             orderBy: { createdAt: "desc" }
         });
+
         res.success(plans);
-    } catch (error) {
-        next(new ApiError("Failed to fetch plans", 500));
+
+    } catch (err) {
+        next(err);
     }
+});
+router.put("/update/:id", checkAdmin, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { name, price, durationDays, isActive } = req.body;
 
+        const updated = await prisma.subscriptionPlan.update({
+            where: { id },
+            data: { name, price, durationDays, isActive }
+        });
+
+        res.success(updated, "Plan updated");
+
+    } catch (err) {
+        next(err);
+    }
 });
 
-router.put("/update/:id", checkAdmin, async (req, res) => {
-    const { id } = req.params;
-    const { name, price, durationDays, isTrial } = req.body;
+router.delete("/delete/:id", checkAdmin, async (req, res, next) => {
+    try {
+        const { id } = req.params;
 
-    const updated = await prisma.subscriptionPlan.update({
-        where: { id },
-        data: {
-            name,
-            price,
-            durationDays,
-            isTrial
-        }
-    });
+        await prisma.subscriptionPlan.delete({
+            where: { id }
+        });
 
-    //     if (isTrial) {
-    //   await prisma.subscriptionPlan.updateMany({
-    //     where: { isTrial: true },
-    //     data: { isTrial: false }
-    //   });
-    // }
+        res.success(null, "Plan deleted");
 
-    res.json(updated);
-});
-
-router.delete("/delete/:id", checkAdmin, async (req, res) => {
-    const { id } = req.params;
-
-    await prisma.subscriptionPlan.delete({
-        where: { id }
-    });
-
-    res.json({ message: "Plan deleted successfully" });
+    } catch (err) {
+        next(err);
+    }
 });
 
 module.exports = router;
