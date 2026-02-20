@@ -26,6 +26,7 @@ touch .env
 Add the following variables:
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/posdb"
+NODE_ENV=production
 JWT_SECRET="your_jwt_secret_key"
 PORT=3000
 RATE_LIMIT_WINDOW=15 * 60 * 1000 # 15 minutes
