@@ -37,7 +37,7 @@ router.post("/login",
                 return res.error("Invalid password", 401);
             }
 
-            const token = jwt.sign({ id: admin.id }, "SECRET", { expiresIn: "1d" });
+            const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
             res.success({ token }, "Login successful");
         } catch (error) {

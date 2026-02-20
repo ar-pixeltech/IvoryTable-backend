@@ -27,7 +27,7 @@ Add the following variables:
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/posdb"
 JWT_SECRET="your_jwt_secret_key"
-PORT=3000
+PORT=3001
 RATE_LIMIT_WINDOW=15 * 60 * 1000 # 15 minutes
 RATE_LIMIT_MAX=100 # Max 100 requests per window per IP
 ```
@@ -55,7 +55,7 @@ npm run dev
 
 Server will run at:
 ```aurduino
-http://localhost:3000
+http://localhost:3001
 ```
 
 ## 🗂 Tech Stack
