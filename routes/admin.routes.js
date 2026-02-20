@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
 // Login
 router.post("/login",
     rateLimiter,
-    async (req, res) => {
+    async (req, res, next) => {
         console.log("Admin login attempt:", req.body);
         try {
             const { email, password } = req.body;
