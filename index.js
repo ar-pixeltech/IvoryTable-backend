@@ -18,6 +18,14 @@ app.use(logger);
 // app.use(rateLimiter);
 app.use(responseHandler);
 
+
+app.get("/api/health", (req, res) => {
+    res.status(200).json({
+        status: "OK",
+        message: "POS Backend Running",
+    });
+});
+
 app.use("/api", routes);
 
 // instead applying on sensative routes
