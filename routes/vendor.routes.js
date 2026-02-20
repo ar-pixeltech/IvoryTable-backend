@@ -1,15 +1,13 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const { PrismaClient } = require("@prisma/client");
-const checkVendorAccess = require("../middleware/checkVendorAccess");
-const checkAdmin = require("../middleware/checkAdmin");
+const { isAdmin, isVendor } = require('../middleware/auth.middleware')
 const jwt = require("jsonwebtoken");
+const prisma = require('../prisma')
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 // Create Vendor
-router.post("/create", checkAdmin, async (req, res, next) => {
+router.post("/create", isAdmin, async (req, res, next) => {
     try {
         const { name, phone, email, password, subscriptionId } = req.body;
 
@@ -90,7 +88,7 @@ router.post("/login", async (req, res, next) => {
 
 
 router.get("/dashboard",
-    checkVendorAccess,
+    isVendor,
     async (req, res) => {
         res.json({ message: "Welcome Vendor", vendor: req.vendor });
     });

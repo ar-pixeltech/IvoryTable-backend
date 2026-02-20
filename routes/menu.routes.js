@@ -1,11 +1,10 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
-const checkVendorAccess = require("../middleware/checkVendorAccess");
+const { isVendor } = require('../middleware/auth.middleware')
+const prisma = require('../prisma')
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
-router.post("/category/create", checkVendorAccess, async (req, res, next) => {
+router.post("/category/create", isVendor, async (req, res, next) => {
     try {
         const { name } = req.body;
 
@@ -22,7 +21,7 @@ router.post("/category/create", checkVendorAccess, async (req, res, next) => {
     }
 });
 
-router.get("/category/all", checkVendorAccess, async (req, res, next) => {
+router.get("/category/all", isVendor, async (req, res, next) => {
     try {
         const categories = await prisma.menuCategory.findMany({
             where: { vendorId: req.vendor.id },
@@ -35,7 +34,7 @@ router.get("/category/all", checkVendorAccess, async (req, res, next) => {
     }
 });
 
-router.put("/category/update/:id", checkVendorAccess, async (req, res, next) => {
+router.put("/category/update/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, isActive } = req.body;
@@ -51,7 +50,7 @@ router.put("/category/update/:id", checkVendorAccess, async (req, res, next) => 
     }
 });
 
-router.delete("/category/delete/:id", checkVendorAccess, async (req, res, next) => {
+router.delete("/category/delete/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -67,7 +66,7 @@ router.delete("/category/delete/:id", checkVendorAccess, async (req, res, next) 
 
 // MENU ITEM ROUTES
 
-router.post("/item/create", checkVendorAccess, async (req, res, next) => {
+router.post("/item/create", isVendor, async (req, res, next) => {
     try {
         const { name, price, description, categoryId } = req.body;
 
@@ -87,7 +86,7 @@ router.post("/item/create", checkVendorAccess, async (req, res, next) => {
     }
 });
 
-router.get("/item/all", checkVendorAccess, async (req, res, next) => {
+router.get("/item/all", isVendor, async (req, res, next) => {
     try {
         const items = await prisma.menuItem.findMany({
             where: { vendorId: req.vendor.id },
@@ -104,7 +103,7 @@ router.get("/item/all", checkVendorAccess, async (req, res, next) => {
 });
 
 
-router.put("/item/update/:id", checkVendorAccess, async (req, res, next) => {
+router.put("/item/update/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, price, description, isAvailable } = req.body;
@@ -121,7 +120,7 @@ router.put("/item/update/:id", checkVendorAccess, async (req, res, next) => {
 });
 
 
-router.delete("/item/delete/:id", checkVendorAccess, async (req, res, next) => {
+router.delete("/item/delete/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
 

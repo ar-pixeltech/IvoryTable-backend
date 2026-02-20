@@ -28,8 +28,19 @@ model Vendor {
   subscriptionEndsAt DateTime?
   trialEndsAt    DateTime?
 
+  // MENU
   categories MenuCategory[]
   items      MenuItem[]
+
+  // ORDERS
+  orders     Order[]
+
+  // INVENTORY
+  ingredients Ingredient[]
+  recipes     Recipe[]
+  stockMovements StockMovement[]
+  purchases   Purchase[]
+
 
   createdAt      DateTime @default(now())
 }
@@ -71,5 +82,127 @@ model MenuItem {
   categoryId  String
   category    MenuCategory @relation(fields: [categoryId], references: [id])
 
+  orderItems OrderItem[]
+  recipe      Recipe?
+
   createdAt   DateTime @default(now())
 }
+
+
+model Order {
+  id            String   @id @default(uuid())
+  orderNumber   Int
+  totalAmount   Float
+  paymentMethod String   // CASH, UPI, CARD
+  status        String   @default("COMPLETED")
+
+  vendorId      String
+  vendor        Vendor   @relation(fields: [vendorId], references: [id])
+
+  items         OrderItem[]
+
+  createdAt     DateTime @default(now())
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  quantity   Int
+  price      Float    // price at time of sale
+  subtotal   Float
+
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  createdAt  DateTime @default(now())
+}
+
+// INVENTORY
+model Ingredient {
+  id            String   @id @default(uuid())
+  name          String
+  unit          String   // kg, gram, litre, piece
+  currentStock  Float
+  lowStockLevel Float
+  isActive      Boolean  @default(true)
+
+  vendorId      String
+  vendor        Vendor   @relation(fields: [vendorId], references: [id])
+
+  recipeItems   RecipeIngredient[]
+  items       PurchaseItem[]
+  stockMovements StockMovement[]
+
+  createdAt     DateTime @default(now())
+}
+
+model Recipe {
+  id          String   @id @default(uuid())
+
+  menuItemId  String   @unique
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+
+  ingredients RecipeIngredient[]
+
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
+
+model RecipeIngredient {
+  id            String   @id @default(uuid())
+  quantityUsed  Float
+
+  recipeId      String
+  recipe        Recipe   @relation(fields: [recipeId], references: [id])
+
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+
+  createdAt     DateTime @default(now())
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  type          String   // SALE, PURCHASE, MANUAL_ADJUSTMENT
+  quantity      Float
+  note          String?
+
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+
+  vendorId      String
+  vendor        Vendor   @relation(fields: [vendorId], references: [id])
+
+  createdAt     DateTime @default(now())
+}
+
+model Purchase {
+  id          String   @id @default(uuid())
+  totalCost   Float
+
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+
+  items       PurchaseItem[]
+
+  createdAt   DateTime @default(now())
+}
+
+model PurchaseItem {
+  id            String   @id @default(uuid())
+  quantity      Float
+  cost          Float
+
+  purchaseId    String
+  purchase      Purchase @relation(fields: [purchaseId], references: [id])
+
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+
+  createdAt     DateTime @default(now())
+}
+

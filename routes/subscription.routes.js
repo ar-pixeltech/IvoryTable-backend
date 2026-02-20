@@ -1,12 +1,11 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
-const checkAdmin = require("../middleware/checkAdmin");
+const { isAdmin } = require('../middleware/auth.middleware')
 
-const prisma = new PrismaClient();
+const prisma = require('../prisma')
 const router = express.Router();
 
 // Create Subscription Plan
-router.post("/create", checkAdmin, async (req, res) => {
+router.post("/create", isAdmin, async (req, res) => {
     try {
         const { name, price, durationDays, isTrial } = req.body;
 
@@ -33,7 +32,7 @@ router.post("/create", checkAdmin, async (req, res) => {
     }
 });
 
-router.get("/all", checkAdmin, async (req, res, next) => {
+router.get("/all", isAdmin, async (req, res, next) => {
     try {
         const plans = await prisma.subscriptionPlan.findMany({
             orderBy: { createdAt: "desc" }
@@ -45,7 +44,7 @@ router.get("/all", checkAdmin, async (req, res, next) => {
         next(err);
     }
 });
-router.put("/update/:id", checkAdmin, async (req, res, next) => {
+router.put("/update/:id", isAdmin, async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, price, durationDays, isActive } = req.body;
@@ -62,7 +61,7 @@ router.put("/update/:id", checkAdmin, async (req, res, next) => {
     }
 });
 
-router.delete("/delete/:id", checkAdmin, async (req, res, next) => {
+router.delete("/delete/:id", isAdmin, async (req, res, next) => {
     try {
         const { id } = req.params;
 
