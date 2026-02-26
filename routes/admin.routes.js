@@ -3,6 +3,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const rateLimiter = require("../middleware/rateLimiter");
 const prisma = require('../prisma')
+const { isAdmin } = require('../middleware/auth.middleware')
+const { ApiError, handlePrismaError } = require('../utlis/ApiError')
 
 const router = express.Router();
 
@@ -44,7 +46,66 @@ router.post("/login",
             next(error);
         }
 
-
     });
+
+// Create Vendor
+router.post("/vendor/create", isAdmin, async (req, res, next) => {
+    try {
+        const { name, phone, email, password, subscriptionId } = req.body;
+
+        // Check for existing email
+        const existing = await prisma.vendor.findUnique({ where: { email } });
+        if (existing) return next(new ApiError("Email already exists", 409));
+
+        const plan = await prisma.subscriptionPlan.findUnique({
+            where: { id: subscriptionId }
+        });
+
+        if (!plan) return next(new ApiError("Invalid plan", 400));
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        let subscriptionEndsAt = null;
+        let trialEndsAt = null;
+
+        if (plan.isTrial) {
+            trialEndsAt = new Date();
+            trialEndsAt.setDate(trialEndsAt.getDate() + plan.durationDays);
+        } else {
+            subscriptionEndsAt = new Date();
+            subscriptionEndsAt.setDate(subscriptionEndsAt.getDate() + plan.durationDays);
+        }
+
+        const vendor = await prisma.vendor.create({
+            data: {
+                name,
+                phone,
+                email,
+                password: hashedPassword,
+                subscriptionId,
+                subscriptionEndsAt,
+                trialEndsAt
+            }
+        });
+
+        res.success(vendor, "Vendor created");
+
+    } catch (err) {
+        next(handlePrismaError(err));
+    }
+});
+
+
+// Vendor List API (for admin)
+router.get("/vendor/list", isAdmin, async (req, res, next) => {
+    try {
+        const vendors = await prisma.vendor.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        res.success(vendors);
+    } catch (err) {
+        next(err);
+    }
+});
 
 module.exports = router;
