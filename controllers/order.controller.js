@@ -9,7 +9,7 @@ exports.createOrder = async (req, res) => {
         let totalAmount = 0
 
         for (let item of items) {
-            const menuItem = await prisma.menuItem.findUnique({
+            const menuItem = await prisma.product.findUnique({
                 where: { id: item.menuItemId }
             })
 
@@ -37,7 +37,7 @@ exports.createOrder = async (req, res) => {
                 items: {
                     create: await Promise.all(
                         items.map(async (item) => {
-                            const menuItem = await prisma.menuItem.findUnique({
+                            const menuItem = await prisma.product.findUnique({
                                 where: { id: item.menuItemId }
                             })
 

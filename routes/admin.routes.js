@@ -51,7 +51,7 @@ router.post("/login",
 // Create Vendor
 router.post("/vendor/create", isAdmin, async (req, res, next) => {
     try {
-        const { name, phone, email, password, subscriptionId } = req.body;
+        const { name, phone, email, password, subscriptionId, businessType } = req.body;
 
         // Check for existing email
         const existing = await prisma.vendor.findUnique({ where: { email } });
@@ -84,7 +84,8 @@ router.post("/vendor/create", isAdmin, async (req, res, next) => {
                 password: hashedPassword,
                 subscriptionId,
                 subscriptionEndsAt,
-                trialEndsAt
+                trialEndsAt,
+                businessType
             }
         });
 

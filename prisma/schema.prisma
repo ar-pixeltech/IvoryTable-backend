@@ -219,7 +219,7 @@ model OrderItem {
   orderId    String
   order      Order    @relation(fields: [orderId], references: [id])
 
-  productId String @map("menuItemId")
+  productId String
   product   Product @relation(fields: [productId], references: [id])
 
   status OrderItemStatus @default(PLACED)
@@ -254,7 +254,7 @@ model Ingredient {
 model Recipe {
   id          String   @id @default(uuid())
 
-  productId  String   @unique @map("menuItemId")
+  productId  String   @unique
   product    Product @relation(fields: [productId], references: [id])
 
   ingredients RecipeIngredient[]

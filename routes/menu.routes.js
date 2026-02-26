@@ -8,9 +8,10 @@ router.post("/category/create", isVendor, async (req, res, next) => {
     try {
         const { name } = req.body;
 
-        const category = await prisma.menuCategory.create({
+        const category = await prisma.category.create({
             data: {
                 name,
+                ...(req.body.parentId ? { parentId: req.body.parentId } : {}),
                 vendorId: req.vendor.id
             }
         });
@@ -23,9 +24,12 @@ router.post("/category/create", isVendor, async (req, res, next) => {
 
 router.get("/category/all", isVendor, async (req, res, next) => {
     try {
-        const categories = await prisma.menuCategory.findMany({
+        const categories = await prisma.category.findMany({
             where: { vendorId: req.vendor.id },
-            orderBy: { createdAt: "desc" }
+            orderBy: { position: "asc" },
+            // include: {
+            //     parent: true
+            // }
         });
 
         res.success(categories);
@@ -39,7 +43,7 @@ router.put("/category/update/:id", isVendor, async (req, res, next) => {
         const { id } = req.params;
         const { name, isActive } = req.body;
 
-        const category = await prisma.menuCategory.update({
+        const category = await prisma.category.update({
             where: { id },
             data: { name, isActive }
         });
@@ -54,7 +58,7 @@ router.delete("/category/delete/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        await prisma.menuCategory.delete({
+        await prisma.category.delete({
             where: { id }
         });
 
@@ -64,13 +68,12 @@ router.delete("/category/delete/:id", isVendor, async (req, res, next) => {
     }
 });
 
-
 router.put("/category/reorder", isVendor, async (req, res, next) => {
     try {
         const { items } = req.body;
 
         const updatePromises = items.map(item =>
-            prisma.menuCategory.update({
+            prisma.category.update({
                 where: { id: item.id },
                 data: { position: item.position }
             })
@@ -85,17 +88,15 @@ router.put("/category/reorder", isVendor, async (req, res, next) => {
 });
 
 // MENU ITEM ROUTES
-
 router.post("/item/create", isVendor, async (req, res, next) => {
     try {
-        const { name, price, description, categoryId } = req.body;
+        if (Object.keys(req.body).length === 0) {
+            return res.error("Request body cannot be empty", 400);
+        }
 
-        const item = await prisma.menuItem.create({
+        const item = await prisma.product.create({
             data: {
-                name,
-                price,
-                description,
-                categoryId,
+                ...req.body,
                 vendorId: req.vendor.id
             }
         });
@@ -108,11 +109,16 @@ router.post("/item/create", isVendor, async (req, res, next) => {
 
 router.get("/item/all", isVendor, async (req, res, next) => {
     try {
-        const items = await prisma.menuItem.findMany({
-            where: { vendorId: req.vendor.id },
-            include: {
-                category: true
-            },
+        const { categoryId } = req.query;
+        const where = { vendorId: req.vendor.id };
+        if (categoryId) {
+            where.categoryId = categoryId;
+        }
+        const items = await prisma.product.findMany({
+            where,
+            // include: {
+            //     category: true
+            // },
             orderBy: { createdAt: "desc" }
         });
 
@@ -122,13 +128,12 @@ router.get("/item/all", isVendor, async (req, res, next) => {
     }
 });
 
-
 router.put("/item/update/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, price, description, isAvailable } = req.body;
 
-        const updated = await prisma.menuItem.update({
+        const updated = await prisma.product.update({
             where: { id },
             data: { name, price, description, isAvailable }
         });
@@ -139,12 +144,11 @@ router.put("/item/update/:id", isVendor, async (req, res, next) => {
     }
 });
 
-
 router.delete("/item/delete/:id", isVendor, async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        await prisma.menuItem.delete({
+        await prisma.product.delete({
             where: { id }
         });
 
