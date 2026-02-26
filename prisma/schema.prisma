@@ -14,6 +14,15 @@ model Admin {
   createdAt DateTime @default(now())
 }
 
+enum BusinessType {
+  RESTAURANT
+  RETAILER
+  FURNITURE
+  SALON
+  SANITARY
+  OTHER
+}
+
 model Vendor {
   id             String   @id @default(uuid())
   name           String
@@ -21,6 +30,7 @@ model Vendor {
   email          String?  @unique
   password       String
   isActive       Boolean  @default(true)
+  businessType   BusinessType?
   
   subscriptionId String?
   subscription   SubscriptionPlan? @relation(fields: [subscriptionId], references: [id])
@@ -29,8 +39,8 @@ model Vendor {
   trialEndsAt    DateTime?
 
   // MENU
-  categories MenuCategory[]
-  items      MenuItem[]
+  categories Category[]
+  products   Product[]
 
   // ORDERS
   orders     Order[]
@@ -41,6 +51,8 @@ model Vendor {
   stockMovements StockMovement[]
   purchases   Purchase[]
 
+  storeSettings StoreSettings?
+  table Table[]
 
   createdAt      DateTime @default(now())
 }
@@ -56,65 +68,169 @@ model SubscriptionPlan {
   vendors     Vendor[]
 }
 
-model MenuCategory {
+model Category {
   id        String   @id @default(uuid())
   name      String
   isActive  Boolean  @default(true)
+  position  Int      @default(0)
 
+  parentId  String?  // optional for root categories
+  parent    Category? @relation("CategoryToParent", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToParent")
+  
   vendorId  String
   vendor    Vendor   @relation(fields: [vendorId], references: [id])
 
-  items     MenuItem[]
+  products  Product[]
 
   createdAt DateTime @default(now())
+
+  @@map("MenuCategory")
 }
 
-model MenuItem {
+model Product {
   id          String   @id @default(uuid())
   name        String
-  price       Float
   description String?
-  isAvailable Boolean  @default(true)
+  price       Float
+  costPrice   Float?
+  taxRate     Float?
+  image       String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  stock       Int       @default(0)
 
   vendorId    String
   vendor      Vendor   @relation(fields: [vendorId], references: [id])
 
   categoryId  String
-  category    MenuCategory @relation(fields: [categoryId], references: [id])
+  category    Category @relation(fields: [categoryId], references: [id])
 
-  orderItems OrderItem[]
+  orderItems  OrderItem[]
   recipe      Recipe?
+  productVariant   ProductVariant[]
 
   createdAt   DateTime @default(now())
+
+  @@map("MenuItem")
 }
 
+model ProductVariant {
+  id        String   @id @default(uuid())
+  name      String
+  price     Float
+  sku       String?
+  barcode   String?
+  isActive  Boolean  @default(true)
+  color     String?
+  size      String?
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+model Table {
+  id        String   @id @default(uuid())
+  name      String   // e.g., "T1", "T2", "VIP-1"
+  isActive  Boolean  @default(true)
+
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  
+  orders    Order[]
+  
+  createdAt DateTime @default(now())
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DILIVERY
+  RETAIL
+}
+
+enum OrderStatus {
+  DRAFT
+  PLACED
+  IN_PROGRESS
+  READY
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+}
+
+enum OrderItemStatus {
+  PLACED
+  IN_PROGRESS
+  SERVED
+  CANCELLED
+  REFUNDED
+}
 
 model Order {
   id            String   @id @default(uuid())
   orderNumber   Int
-  totalAmount   Float
-  paymentMethod String   // CASH, UPI, CARD
-  status        String   @default("COMPLETED")
+  orderType     OrderType      @default(DINE_IN)
+  status        OrderStatus    @default(DRAFT)
+  paymentStatus PaymentStatus  @default(PENDING)
+  paymentMethod PaymentMethod  @default(CASH)
 
+  subTotal         Float
+  taxAmount        Float
+  discountAmount   Float
+  totalAmount      Float
+  tipAmount        Float
+
+  tableId   String?
+  table     Table?   @relation(fields: [tableId], references: [id])
+  
   vendorId      String
   vendor        Vendor   @relation(fields: [vendorId], references: [id])
 
   items         OrderItem[]
 
+  isRefunded    Boolean   @default(false)
+  refundAmount  Float?
+  refundReason  String?
+  refundedAt    DateTime?
+
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  closeAt       DateTime
 }
 
 model OrderItem {
   id         String   @id @default(uuid())
   quantity   Int
-  price      Float    // price at time of sale
+  unitPrice  Float    // price at time of sale
   subtotal   Float
 
   orderId    String
   order      Order    @relation(fields: [orderId], references: [id])
 
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  productId String @map("menuItemId")
+  product   Product @relation(fields: [productId], references: [id])
+
+  status OrderItemStatus @default(PLACED)
+
+  isRefunded    Boolean   @default(false)
+  refundAmount  Float?
+  refundReason  String?
+  refundedAt    DateTime?
 
   createdAt  DateTime @default(now())
 }
@@ -141,8 +257,8 @@ model Ingredient {
 model Recipe {
   id          String   @id @default(uuid())
 
-  menuItemId  String   @unique
-  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  productId  String   @unique @map("menuItemId")
+  product    Product @relation(fields: [productId], references: [id])
 
   ingredients RecipeIngredient[]
 
@@ -206,3 +322,26 @@ model PurchaseItem {
   createdAt     DateTime @default(now())
 }
 
+model StoreSettings {
+  id              String  @id @default(uuid())
+  storeName       String
+  logoURL         String? 
+  gstNumber       String?
+  fssaiNumber     String?
+  gstPercentage   Float
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  state           String?
+  pincode         String?
+  currency        String? @default("INR")
+  timezone        String? @default("Asia/Kolkata")
+  invoicePrefix   String  @default("INV")
+  invoiceFooter   String?
+
+  vendorId        String   @unique
+  vendor          Vendor   @relation(fields: [vendorId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
