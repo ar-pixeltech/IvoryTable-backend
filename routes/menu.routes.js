@@ -64,6 +64,26 @@ router.delete("/category/delete/:id", isVendor, async (req, res, next) => {
     }
 });
 
+
+router.put("/category/reorder", isVendor, async (req, res, next) => {
+    try {
+        const { items } = req.body;
+
+        const updatePromises = items.map(item =>
+            prisma.menuCategory.update({
+                where: { id: item.id },
+                data: { position: item.position }
+            })
+        );
+
+        await Promise.all(updatePromises);
+
+        res.success(null, "Categories reordered");
+    } catch (err) {
+        next(err);
+    }
+});
+
 // MENU ITEM ROUTES
 
 router.post("/item/create", isVendor, async (req, res, next) => {
