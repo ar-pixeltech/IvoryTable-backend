@@ -85,8 +85,6 @@ model Category {
   products  Product[]
 
   createdAt DateTime @default(now())
-
-  @@map("MenuCategory")
 }
 
 model Product {
@@ -112,8 +110,6 @@ model Product {
   productVariant   ProductVariant[]
 
   createdAt   DateTime @default(now())
-
-  @@map("MenuItem")
 }
 
 model ProductVariant {
