@@ -1,54 +1,10 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const { isAdmin, isVendor } = require('../middleware/auth.middleware')
+const { isVendor } = require('../middleware/auth.middleware')
 const jwt = require("jsonwebtoken");
 const prisma = require('../prisma')
 
 const router = express.Router();
-
-// Create Vendor
-router.post("/create", isAdmin, async (req, res, next) => {
-    try {
-        const { name, phone, email, password, subscriptionId } = req.body;
-
-        const plan = await prisma.subscriptionPlan.findUnique({
-            where: { id: subscriptionId }
-        });
-
-        if (!plan) return res.error("Invalid plan", 400);
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        let subscriptionEndsAt = null;
-        let trialEndsAt = null;
-
-        if (plan.isTrial) {
-            trialEndsAt = new Date();
-            trialEndsAt.setDate(trialEndsAt.getDate() + plan.durationDays);
-        } else {
-            subscriptionEndsAt = new Date();
-            subscriptionEndsAt.setDate(subscriptionEndsAt.getDate() + plan.durationDays);
-        }
-
-        const vendor = await prisma.vendor.create({
-            data: {
-                name,
-                phone,
-                email,
-                password: hashedPassword,
-                subscriptionId,
-                subscriptionEndsAt,
-                trialEndsAt
-            }
-        });
-
-        res.success(vendor, "Vendor created");
-
-    } catch (err) {
-        next(err);
-    }
-});
-
 
 // vendor login API
 router.post("/login", async (req, res, next) => {
@@ -79,19 +35,24 @@ router.post("/login", async (req, res, next) => {
             { expiresIn: "1d" }
         );
 
-        res.success({ token }, "Login successful");
+        res.success({
+            token, name: vendor.name,
+            email: vendor.email,
+            businessType: vendor.businessType
+        }, "Login successful");
 
     } catch (err) {
         next(err);
     }
 });
 
-
 router.get("/dashboard",
     isVendor,
     async (req, res) => {
         res.json({ message: "Welcome Vendor", vendor: req.vendor });
     });
+
+
 
 
 module.exports = router;
