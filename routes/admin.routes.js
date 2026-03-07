@@ -5,6 +5,7 @@ const rateLimiter = require("../middleware/rateLimiter");
 const prisma = require('../prisma')
 const { isAdmin } = require('../middleware/auth.middleware')
 const { ApiError, handlePrismaError } = require('../utlis/ApiError')
+const { vendorWithSubscriptionSelect } = require('../constants/vendor.select')
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.post("/login",
 
             const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-            res.success({ token }, "Login successful");
+            res.success({ token, email: admin.email }, "Login successful");
         } catch (error) {
             next(error);
         }
@@ -101,6 +102,7 @@ router.post("/vendor/create", isAdmin, async (req, res, next) => {
 router.get("/vendor/list", isAdmin, async (req, res, next) => {
     try {
         const vendors = await prisma.vendor.findMany({
+            select: vendorWithSubscriptionSelect,
             orderBy: { createdAt: "desc" }
         });
         res.success(vendors);
