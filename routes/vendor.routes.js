@@ -12,7 +12,8 @@ router.post("/login", async (req, res, next) => {
         const { email, password } = req.body;
 
         const vendor = await prisma.vendor.findUnique({
-            where: { email }
+            where: { email },
+            include: { subscription: true }
         });
 
         if (!vendor) return res.error("Vendor not found", 404);
@@ -35,10 +36,11 @@ router.post("/login", async (req, res, next) => {
             { expiresIn: "1d" }
         );
 
+        const { password: _, ...safeVendor } = vendor;
+
         res.success({
-            token, name: vendor.name,
-            email: vendor.email,
-            businessType: vendor.businessType
+            token,
+            vendor: safeVendor
         }, "Login successful");
 
     } catch (err) {
